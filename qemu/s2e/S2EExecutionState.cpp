@@ -103,6 +103,7 @@ unsigned S2EExecutionState::s_lastSymbolicId = 0;
 
 S2EExecutionState::S2EExecutionState(klee::KFunction *kf) :
         klee::ExecutionState(kf), m_stateID(g_s2e->fetchAndIncrementStateId()),
+        m_indirect_forks(0),
         m_symbexEnabled(true), m_startSymbexAtPC((uint64_t) -1),
         m_active(true), m_zombie(false), m_yielded(false), m_runningConcrete(true),
         m_cpuRegistersObject(NULL), m_cpuSystemObject(NULL),

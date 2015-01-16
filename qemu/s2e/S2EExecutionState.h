@@ -119,6 +119,8 @@ protected:
 
     PluginStateMap m_PluginState;
 
+    uint64_t m_indirect_forks;
+
     bool m_symbexEnabled;
 
     /* Internal variable - set to PC where execution should be

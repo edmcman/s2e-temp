@@ -251,6 +251,10 @@ cl::opt<bool>
 DebugConstraints("debug-constraints",
                cl::desc("Check that added constraints are satisfiable"),  cl::init(false));
 
+cl::opt<unsigned>
+MaxJumps("max-jumps",
+	 cl::desc("Only allow this many symbolic indirect jumps (0=off)"),
+	 cl::init(0));
 
 
 
@@ -523,6 +527,7 @@ void S2EExecutor::handleForkAndConcretize(Executor* executor,
                                      std::vector< ref<Expr> > &args)
 {
     S2EExecutor* s2eExecutor = static_cast<S2EExecutor*>(executor);
+    S2EExecutionState* s2eState = static_cast<S2EExecutionState*>(state);
 
     assert(args.size() == 3);
     ref<Expr> address = args[0];
@@ -558,7 +563,15 @@ void S2EExecutor::handleForkAndConcretize(Executor* executor,
         concreteAddress = value;
     }
 
+    g_s2e->getWarningsStream() << "Forking on symbolic jump from " << s2eState->getPc() << " to " << concreteAddress << ", m_indirect_forks = " << s2eState->m_indirect_forks << "\n";
+
     klee::ref<klee::Expr> condition = EqExpr::create(concreteAddress, address);
+
+    if (MaxJumps && s2eState->m_indirect_forks >= MaxJumps) {
+      //s2eState->m_forkAborted = true;
+      s2eExecutor->terminateStateEarly(*state, "maximum number of jumps reached");
+      assert(false);
+    }
 
     if (!state->forkDisabled) {
         //XXX: may create deep paths!
@@ -567,6 +580,8 @@ void S2EExecutor::handleForkAndConcretize(Executor* executor,
         //The condition is always true in the current state
         //(i.e., expr == concreteAddress holds).
         assert(sp.first == state);
+
+	static_cast<S2EExecutionState*> (sp.first)->m_indirect_forks++;
 
         //It may happen that the simplifier figures out that
         //the condition is always true, in which case, no fork is needed.
@@ -2073,7 +2088,8 @@ void S2EExecutor::doStateFork(S2EExecutionState *originalState,
 
     llvm::raw_ostream& out = m_s2e->getMessagesStream(originalState);
     out << "Forking state " << originalState->getID()
-            << " at pc = " << hexval(originalState->getPc()) << '\n';
+	<< " at pc = " << hexval(originalState->getPc()) 
+	<< '\n';
 
     for(unsigned i = 0; i < newStates.size(); ++i) {
         S2EExecutionState* newState = newStates[i];
