@@ -567,8 +567,8 @@ void S2EExecutor::handleForkAndConcretize(Executor* executor,
 
     klee::ref<klee::Expr> condition = EqExpr::create(concreteAddress, address);
 
-    if (MaxJumps && s2eState->m_indirect_forks >= MaxJumps) {
-      //s2eState->m_forkAborted = true;
+    static int x = 0;
+    if (x++ > 5) {
       s2eExecutor->terminateStateEarly(*state, "maximum number of jumps reached");
       assert(false);
     }
